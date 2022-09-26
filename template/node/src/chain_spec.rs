@@ -217,6 +217,44 @@ fn testnet_genesis(
 						code: vec![0x00],
 					},
 				);
+				// Artur (Hardhat's testing accounts)
+				map.insert(
+					// ALICE
+					H160::from_str("004e5062fb8C93c6cf5187bF499d9fa9117dDe16")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+				map.insert(
+					// BOB
+					H160::from_str("00f850988A7F12f3A7623869c57786Bd7DE67619")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+				map.insert(
+					// CHARLIE
+					H160::from_str("008D8D41EE74A671874ED14FDAc67A6f85C66707")
+						.expect("internal H160 is valid; qed"),
+					fp_evm::GenesisAccount {
+						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+							.expect("internal U256 is valid; qed"),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+				// -----------------------------------------------------------
 				map
 			},
 		},
