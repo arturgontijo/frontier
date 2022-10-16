@@ -631,9 +631,9 @@ impl GasWeightMapping for () {
 	}
 }
 
-static LONDON_CONFIG: EvmConfig = free_for_all();
+static LONDON_CONFIG: EvmConfig = limitless();
 
-pub const fn free_for_all() -> EvmConfig {
+pub const fn limitless() -> EvmConfig {
 	EvmConfig {
 		gas_ext_code: 0, // Artur
 		gas_ext_code_hash: 0, // Artur
@@ -678,7 +678,7 @@ pub const fn free_for_all() -> EvmConfig {
 		has_chain_id: true,
 		has_self_balance: true,
 		has_ext_code_hash: true,
-		has_base_fee: true,
+		has_base_fee: false,
 		estimate: false,
 	}
 }
