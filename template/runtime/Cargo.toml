@@ -61,6 +61,7 @@ pallet-evm-precompile-sha3fips = { path = "../../frame/evm/precompile/sha3fips",
 pallet-evm-precompile-simple = { path = "../../frame/evm/precompile/simple", default-features = false }
 pallet-hotfix-sufficients = { path = "../../frame/hotfix-sufficients", default-features = false }
 pallet-uniques = { path = "../../frame/uniques", default-features = false }
+pallet-migrate = { path = "../../frame/migrate", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
@@ -116,6 +117,7 @@ std = [
 	"pallet-evm-precompile-simple/std",
 	"pallet-hotfix-sufficients/std",
 	"pallet-uniques/std",
+	"pallet-migrate/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

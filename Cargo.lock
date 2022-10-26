@@ -107,6 +107,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "array-bytes"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a913633b0c922e6b745072795f50d90ebea78ba31a57e2ac8c2fc7b50950949"
+
+[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2214,6 +2220,7 @@ dependencies = [
  "pallet-evm-precompile-simple",
  "pallet-grandpa",
  "pallet-hotfix-sufficients",
+ "pallet-migrate",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -4655,6 +4662,25 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-evm",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-migrate"
+version = "4.0.0-dev"
+dependencies = [
+ "array-bytes",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-evm",
+ "pallet-uniques",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -8525,7 +8551,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.3",
- "rand 0.7.3",
+ "rand 0.8.5",
  "static_assertions",
 ]
 

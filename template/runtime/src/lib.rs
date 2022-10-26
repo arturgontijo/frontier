@@ -399,7 +399,7 @@ parameter_types! {
 impl pallet_uniques::Config for Runtime {
 	type Event = Event;
 	type CollectionId = H160;
-	type ItemId = u32;
+	type ItemId = H256;
 	type Currency = Balances;
 	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
 	type CreateOrigin = AsEnsureOriginWithArg<EnsureSigned<AccountId>>;
@@ -415,6 +415,11 @@ impl pallet_uniques::Config for Runtime {
 	#[cfg(feature = "runtime-benchmarks")]
 	type Helper = ();
 	type WeightInfo = pallet_uniques::weights::SubstrateWeight<Runtime>;
+}
+
+impl pallet_migrate::Config for Runtime {
+	type Event = Event;
+	type Converter = ();
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -438,6 +443,7 @@ construct_runtime!(
 		BaseFee: pallet_base_fee,
 		HotfixSufficients: pallet_hotfix_sufficients,
 		Uniques: pallet_uniques,
+		Migrate: pallet_migrate,
 	}
 );
 
