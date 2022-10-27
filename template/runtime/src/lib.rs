@@ -52,7 +52,7 @@ pub use frame_support::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
 		ConstantMultiplier, IdentityFee, Weight,
 	},
-	ConsensusEngineId, StorageValue,
+	ConsensusEngineId, PalletId, StorageValue,
 };
 pub use frame_system::EnsureSigned;
 pub use frame_system::Call as SystemCall;
@@ -417,8 +417,13 @@ impl pallet_uniques::Config for Runtime {
 	type WeightInfo = pallet_uniques::weights::SubstrateWeight<Runtime>;
 }
 
+parameter_types! {
+	pub const MigratePalletId: PalletId = PalletId(*b"py/mynft");
+}
+
 impl pallet_migrate::Config for Runtime {
 	type Event = Event;
+	type PalletId = MigratePalletId;
 	type Converter = ();
 }
 

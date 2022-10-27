@@ -33,12 +33,23 @@ pub use pallet::*;
 
 use sp_std::prelude::*;
 use sp_core::{H160, H256, U256};
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, Zero};
+use sha3::{Digest, Keccak256};
+use hex;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::*;
+	use frame_support::{
+		pallet_prelude::*,
+		PalletId,
+		traits::Currency,
+	};
 	use frame_system::pallet_prelude::*;
+	use pallet_evm::Runner;
+
+	type BalanceOf<T> =
+		<<T as pallet_uniques::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	pub trait UniquesConverter<CollectionId, ItemId> {
 		fn collection(i: H160) -> CollectionId;
@@ -58,6 +69,11 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_uniques::Config + pallet_evm::Config {
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		/// The NFT Migrator's pallet id
+		#[pallet::constant]
+		type PalletId: Get<PalletId>;
+
 		type Converter: UniquesConverter<Self::CollectionId, Self::ItemId>;
 	}
 
@@ -71,8 +87,8 @@ pub mod pallet {
 	/// Errors.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// NotOwner.
-		NotOwner,
+		/// Fail.
+		Fail,
 	}
 
 	#[pallet::pallet]
@@ -81,82 +97,199 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+
 		#[pallet::weight(0)]
-		pub fn migrate(
+		pub fn migrate_my_erc721(
 			origin: OriginFor<T>,
 			contract: H160,
-			owner_raw_key: H256,
-			starting_raw_key: H256,
+			token_ids: Vec<H256>,
 		) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
-			let h160_origin = Self::get_evm_address(&origin);
 
-			// Creating a Collection
-			let v = pallet_evm::AccountStorages::<T>::get(contract.clone(), owner_raw_key);
-			let contract_owner = H160::from(v.clone());
+			// Creating a Collection if it does not exist (setting this Pallet account as its owner).
+			let master = Self::account_id();
+			Self::create_collection(master.clone(), master.clone(), contract.clone());
 
-			if h160_origin == contract_owner {
-				// let owner: T::AccountId = T::AddressMapping::into_account_id(contract_owner.clone());
-				let converted_contract = T::Converter::collection(contract.clone());
-
-				if pallet_uniques::Pallet::<T>::collection_owner(converted_contract.clone()).is_none() {
-					let _ = pallet_uniques::Pallet::<T>::do_create_collection(
-						converted_contract.clone(),
-						origin.clone(),
-						origin.clone(),
-						T::CollectionDeposit::get(),
-						false,
-						pallet_uniques::Event::Created {
-							collection: converted_contract.clone(),
-							creator: origin.clone(),
-							owner: origin.clone()
-						},
-					);
-				};
-			}
-
-			let mut u256_counter = U256::from_big_endian(&starting_raw_key[..]);
-			let mut h256_counter = H256::default();
-			loop {
-				u256_counter.to_big_endian(&mut h256_counter[..]);
-				let item_id = pallet_evm::AccountStorages::<T>::get(&contract, &h256_counter);
-
-				u256_counter += U256::one();
-				u256_counter.to_big_endian(&mut h256_counter[..]);
-				let item_owner = pallet_evm::AccountStorages::<T>::get(&contract, &h256_counter);
-
-				u256_counter += U256::one();
-				if item_id == H256::default() && item_owner == H256::default() { break };
-				// let owner = T::AddressMapping::into_account_id(H160::from(item_owner.clone()));
-				if h160_origin == H160::from(item_owner.clone()) {
-					let collection = T::Converter::collection(contract.clone());
-					let item = T::Converter::item(item_id.clone());
-					if pallet_uniques::Pallet::<T>::owner(collection.clone(), item.clone()).is_none() {
-						let _ = pallet_uniques::Pallet::<T>::do_mint(
-							collection,
-							item,
-							origin.clone(),
-							|_| { Ok(()) }
-						);
-					}
+			for token_id in token_ids {
+				if Self::is_owner_of(&origin, contract.clone(), token_id.clone()) {
+					Self::migrate_token_to_owner(origin.clone(), contract.clone(), token_id);
 				}
 			}
+
 			Ok(())
 		}
 
 		#[pallet::weight(0)]
-		pub fn evm_account(origin: OriginFor<T>) -> DispatchResult {
+		pub fn z2_migrate_my_nfts(
+			origin: OriginFor<T>,
+			contract: H160,
+			storage_slot: H256,
+		) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			let starting_key = Self::get_starting_key(&origin, storage_slot.clone());
+			Self::migrate_nfts_from_starting_key(vec![origin], contract, starting_key, false);
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn z3_migrate_all_nfts(
+			origin: OriginFor<T>,
+			owner: <T::Lookup as StaticLookup>::Source,
+			contract: H160,
+			starting_key: H256,
+			new_owners: Vec<T::AccountId>,
+		) -> DispatchResult {
+			ensure_root(origin.clone())?;
+			let owner = T::Lookup::lookup(owner)?;
+
+			// Creating a Collection
+			Self::create_collection(owner.clone(), owner.clone(), contract.clone());
+
+			let mut _new_owners = new_owners.clone();
+			_new_owners.insert(0, owner);
+			Self::migrate_nfts_from_starting_key(
+				_new_owners,
+				contract.clone(),
+				starting_key.clone(),
+				true
+			);
+
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn z1_evm_account(origin: OriginFor<T>) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
 			let who = Self::get_evm_address(&origin);
 			Self::deposit_event(Event::<T>::EvmAddress { who });
 			Ok(())
 		}
+
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn get_evm_address(account_id: &T::AccountId) -> H160 {
+
+		pub fn account_id() -> T::AccountId {
+			T::PalletId::get().into_account_truncating()
+		}
+
+		fn get_evm_address(account_id: &T::AccountId) -> H160 {
 			H160::from_slice(&account_id.encode()[0..20])
 		}
+
+		fn get_starting_key(origin: &T::AccountId, storage_slot: H256) -> H256 {
+			let h256_address = H256::from(Self::get_evm_address(origin));
+			let data: Vec<u8> = [&h256_address[..], &storage_slot[..]].concat();
+			let hash = H256::from_slice(Keccak256::digest(&data).as_slice());
+			H256::from_slice(Keccak256::digest(&hash[..]).as_slice())
+		}
+
+		fn create_collection(owner: T::AccountId, admin: T::AccountId, contract: H160) {
+			let converted_contract = T::Converter::collection(contract.clone());
+			if pallet_uniques::Pallet::<T>::collection_owner(converted_contract.clone()).is_none() {
+				let _ = pallet_uniques::Pallet::<T>::do_create_collection(
+					converted_contract.clone(),
+					owner.clone(),
+					admin.clone(),
+					BalanceOf::<T>::zero(),
+					true,
+					pallet_uniques::Event::Created {
+						collection: converted_contract,
+						creator: owner.clone(),
+						owner: owner.clone()
+					},
+				);
+			};
+		}
+
+		fn migrate_nfts_from_starting_key(
+			owners: Vec<T::AccountId>,
+			contract: H160,
+			starting_key: H256,
+			check_for_owner: bool,
+		) {
+			let mut u256_counter = U256::from_big_endian(&starting_key[..]);
+			let mut h256_counter = H256::default();
+			loop {
+				let mut owner = owners[0].clone();
+
+				u256_counter.to_big_endian(&mut h256_counter[..]);
+				let token_id = pallet_evm::AccountStorages::<T>::get(&contract, &h256_counter);
+
+				let mut token_owner = H256::default();
+				if check_for_owner {
+					u256_counter += U256::one();
+					u256_counter.to_big_endian(&mut h256_counter[..]);
+					token_owner = pallet_evm::AccountStorages::<T>::get(&contract, &h256_counter);
+					for _owner in &owners {
+						if Self::get_evm_address(_owner) == H160::from(token_owner.clone()) {
+							owner = _owner.clone();
+						}
+					}
+				}
+
+				u256_counter += U256::one();
+				if token_id == H256::default() && token_owner == H256::default() { break };
+
+				Self::migrate_token_to_owner(owner, contract, token_id);
+			}
+		}
+
+		fn migrate_token_to_owner(owner: T::AccountId, contract: H160, token_id: H256) {
+			let collection = T::Converter::collection(contract.clone());
+			let item = T::Converter::item(token_id);
+			let current_owner = pallet_uniques::Pallet::<T>::owner(collection.clone(), item.clone());
+			if current_owner.is_none() {
+				let _ = pallet_uniques::Pallet::<T>::do_mint(
+					collection,
+					item,
+					owner.clone(),
+					|_| { Ok(()) }
+				);
+			} else if current_owner.unwrap() != owner.clone() {
+				let _z = pallet_uniques::Pallet::<T>::do_transfer(
+					collection,
+					item,
+					owner.clone(),
+					|_, _| { Ok(()) }
+				);
+			}
+		}
+
+		fn is_owner_of(
+			owner: &T::AccountId,
+			contract: H160,
+			token_id: H256,
+		) -> bool {
+			let source = Self::get_evm_address(owner);
+
+			let owner_of_hash = hex::decode("6352211e").unwrap();
+			let input = [owner_of_hash.as_slice(), &token_id.to_fixed_bytes()].concat();
+
+			return match T::Runner::call(
+				source,
+				contract,
+				input,
+				U256::default(),
+				T::BlockGasLimit::get().as_u64(),
+				None,
+				None,
+				None,
+				vec![],
+				false,
+				false,
+				T::config(),
+			) {
+				Ok(info) => {
+					if info.value.len() == 32 && source.as_bytes() == &info.value[12..] {
+						return true;
+					}
+					false
+				},
+				Err(_) => false,
+			}
+		}
+
 	}
 
 }
