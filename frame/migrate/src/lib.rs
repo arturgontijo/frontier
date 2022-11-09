@@ -33,7 +33,7 @@ pub use pallet::*;
 
 use sp_std::prelude::*;
 use sp_core::{H160, H256, U256};
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, Zero};
+use sp_runtime::traits::{AccountIdConversion, Zero};
 use sha3::{Digest, Keccak256};
 use hex;
 
@@ -46,7 +46,7 @@ pub mod pallet {
 		traits::Currency,
 	};
 	use frame_system::pallet_prelude::*;
-	use pallet_evm::Runner;
+	use pallet_evm::{AddressMapping, Runner};
 
 	type BalanceOf<T> =
 		<<T as pallet_uniques::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -82,6 +82,8 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// EvmAddress.
 		EvmAddress { who: H160 },
+		/// AccountId.
+		AccountId { who: T::AccountId },
 	}
 
 	/// Errors.
@@ -99,7 +101,62 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 
 		#[pallet::weight(0)]
-		pub fn migrate_my_erc721(
+		pub fn migrate_erc721_nfts(
+			origin: OriginFor<T>,
+			contract: H160,
+		) -> DispatchResult {
+			ensure_root(origin.clone())?;
+
+			// Creating a Collection if it does not exist (setting this Pallet account as its owner).
+			let master = Self::account_id();
+			Self::create_collection(master.clone(), master.clone(), contract.clone());
+
+			// For simple ERC721 the `mapping(uint256 => address)` is at storage slot 2.
+			// So if we keccak(0x00...02) we'll get the first storage key (starting_key):
+			let u256_slot_2 = U256::from(2);
+			let mut h256_slot_2 = H256::default();
+			u256_slot_2.to_big_endian(&mut h256_slot_2[..]);
+			let starting_key = H256::from_slice(Keccak256::digest(&h256_slot_2[..]).as_slice());
+
+			Self::migrate_nfts_from_starting_key(
+				vec![master],
+				contract,
+				starting_key,
+				true
+			);
+
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn claim_erc721_items(
+			origin: OriginFor<T>,
+			contract: H160,
+			item_ids: Vec<H256>,
+		) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+
+			// Creating a Collection if it does not exist (setting this Pallet account as its owner).
+			let master = Self::account_id();
+			Self::create_collection(master.clone(), master.clone(), contract.clone());
+
+			let collection = T::Converter::collection(contract.clone());
+
+			let account_id_from_evm_address = T::AddressMapping::into_account_id(Self::get_evm_address(&origin));
+			for item_id in item_ids {
+				let item = T::Converter::item(item_id);
+				if let Some(current_owner) = pallet_uniques::Pallet::<T>::owner(collection.clone(), item.clone()) {
+					if current_owner == account_id_from_evm_address {
+						Self::migrate_token_to_owner(origin.clone(), contract.clone(), item_id);
+					}
+				}
+			}
+
+			Ok(())
+		}
+
+		#[pallet::weight(0)]
+		pub fn migrate_with_owner_of(
 			origin: OriginFor<T>,
 			contract: H160,
 			token_ids: Vec<H256>,
@@ -120,7 +177,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn z2_migrate_my_nfts(
+		pub fn z_migrate_my_nfts(
 			origin: OriginFor<T>,
 			contract: H160,
 			storage_slot: H256,
@@ -132,39 +189,20 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(0)]
-		pub fn z3_migrate_all_nfts(
-			origin: OriginFor<T>,
-			owner: <T::Lookup as StaticLookup>::Source,
-			contract: H160,
-			starting_key: H256,
-			new_owners: Vec<T::AccountId>,
-		) -> DispatchResult {
-			ensure_root(origin.clone())?;
-			let owner = T::Lookup::lookup(owner)?;
-
-			// Creating a Collection
-			Self::create_collection(owner.clone(), owner.clone(), contract.clone());
-
-			let mut _new_owners = new_owners.clone();
-			_new_owners.insert(0, owner);
-			Self::migrate_nfts_from_starting_key(
-				_new_owners,
-				contract.clone(),
-				starting_key.clone(),
-				true
-			);
-
-			Ok(())
-		}
-
-		#[pallet::weight(0)]
-		pub fn z1_evm_account(origin: OriginFor<T>) -> DispatchResult {
+		pub fn z_evm_address(origin: OriginFor<T>) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
 			let who = Self::get_evm_address(&origin);
 			Self::deposit_event(Event::<T>::EvmAddress { who });
 			Ok(())
 		}
 
+		#[pallet::weight(0)]
+		pub fn z_evm_to_account_id(origin: OriginFor<T>, address: H160) -> DispatchResult {
+			ensure_signed(origin)?;
+			let who = T::AddressMapping::into_account_id(address);
+			Self::deposit_event(Event::<T>::AccountId { who });
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -221,15 +259,17 @@ pub mod pallet {
 					u256_counter += U256::one();
 					u256_counter.to_big_endian(&mut h256_counter[..]);
 					token_owner = pallet_evm::AccountStorages::<T>::get(&contract, &h256_counter);
-					for _owner in &owners {
-						if Self::get_evm_address(_owner) == H160::from(token_owner.clone()) {
-							owner = _owner.clone();
-						}
-					}
+					// We use pallet_evm AddressMapping to get an AccountId from EVM Account Address (H160):
+					owner = T::AddressMapping::into_account_id(H160::from(token_owner.clone()));
+					// for _owner in &owners {
+					// 	if Self::get_evm_address(_owner) == H160::from(token_owner.clone()) {
+					// 		owner = _owner.clone();
+					// 	}
+					// }
 				}
 
-				u256_counter += U256::one();
 				if token_id == H256::default() && token_owner == H256::default() { break };
+				u256_counter += U256::one();
 
 				Self::migrate_token_to_owner(owner, contract, token_id);
 			}
