@@ -90,6 +90,7 @@ pub use fp_evm::{
 	LinearCostPrecompile, Log, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet, Vicinity,
 };
+pub use scale_info::prelude::format;
 
 pub use self::{
 	pallet::*,
@@ -400,6 +401,29 @@ pub mod pallet {
 				pays_fee: Pays::No,
 			})
 		}
+
+		/// Bind an EVM Address to an AccountId.
+		#[pallet::call_index(4)]
+		#[pallet::weight(0)]
+		pub fn bind_evm_address(
+			origin: OriginFor<T>,
+			evm_address: H160,
+			proof: [u8; 65],
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			let message = Self::ethereum_message(&who.encode()[..]);
+			let pubkey = match sp_io::crypto::secp256k1_ecdsa_recover(&proof, &message) {
+				Ok(pubkey) => sp_io::hashing::keccak_256(&pubkey),
+				Err(_) => [0u8; 32],
+			};
+
+			let address = H160::from_slice(&pubkey[12..]);
+			ensure!(address == evm_address, Error::<T>::InvalidProof);
+			<AccountMap<T>>::insert(who, evm_address);
+
+			Ok(())
+		}
 	}
 
 	#[pallet::event]
@@ -441,6 +465,10 @@ pub mod pallet {
 		Reentrancy,
 		/// EIP-3607,
 		TransactionMustComeFromEOA,
+		/// InvalidEVMAddress,
+		InvalidEVMAddress,
+		/// InvalidProof,
+		InvalidProof,
 	}
 
 	impl<T> From<InvalidEvmTransactionError> for Error<T> {
@@ -504,6 +532,11 @@ pub mod pallet {
 	#[pallet::getter(fn account_storages)]
 	pub type AccountStorages<T: Config> =
 		StorageDoubleMap<_, Blake2_128Concat, H160, Blake2_128Concat, H256, H256, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn account_map)]
+	pub type AccountMap<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, H160, OptionQuery>;
 }
 
 /// Type alias for currency balance.
@@ -580,19 +613,28 @@ impl<OuterOrigin, AccountId> EnsureAddressOrigin<OuterOrigin> for EnsureAddressN
 }
 
 /// Ensure that the address is truncated hash of the origin. Only works if the account id is
-/// `AccountId32`.
-pub struct EnsureAddressTruncated;
+/// `T::AccountId`.
+pub struct EnsureAddressTruncated<T>(sp_std::marker::PhantomData<T>);
 
-impl<OuterOrigin> EnsureAddressOrigin<OuterOrigin> for EnsureAddressTruncated
+impl<T: Config, OuterOrigin> EnsureAddressOrigin<OuterOrigin> for EnsureAddressTruncated<T>
 where
-	OuterOrigin: Into<Result<RawOrigin<AccountId32>, OuterOrigin>> + From<RawOrigin<AccountId32>>,
+	OuterOrigin:
+		Clone + Into<Result<RawOrigin<T::AccountId>, OuterOrigin>> + From<RawOrigin<T::AccountId>>,
 {
-	type Success = AccountId32;
+	type Success = T::AccountId;
 
-	fn try_address_origin(address: &H160, origin: OuterOrigin) -> Result<AccountId32, OuterOrigin> {
-		origin.into().and_then(|o| match o {
-			RawOrigin::Signed(who) if AsRef::<[u8; 32]>::as_ref(&who)[0..20] == address[0..20] => {
-				Ok(who)
+	fn try_address_origin(
+		address: &H160,
+		origin: OuterOrigin,
+	) -> Result<T::AccountId, OuterOrigin> {
+		origin.clone().into().and_then(|o| match o {
+			RawOrigin::Signed(who) => {
+				if let Some(evm_address) = AccountMap::<T>::get(who.clone()) {
+					if &evm_address == address {
+						return Ok(who);
+					}
+				}
+				Err(origin)
 			}
 			r => Err(OuterOrigin::from(r)),
 		})
@@ -667,6 +709,15 @@ impl<T: Config> GasWeightMapping for FixedGasWeightMapping<T> {
 static LONDON_CONFIG: EvmConfig = EvmConfig::london();
 
 impl<T: Config> Pallet<T> {
+	/// Create an Ethereum message to be signed/verified.
+	fn ethereum_message(msg: &[u8]) -> [u8; 32] {
+		let mut v = format!("\x19Ethereum Signed Message:\n{}", msg.len())
+			.as_bytes()
+			.to_vec();
+		v.extend_from_slice(msg);
+		sp_io::hashing::keccak_256(&v[..])
+	}
+
 	/// Check whether an account is empty.
 	pub fn is_account_empty(address: &H160) -> bool {
 		let (account, _) = Self::account_basic(address);

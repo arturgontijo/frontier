@@ -38,6 +38,8 @@ pallet-timestamp = { version = "4.0.0-dev", git = "https://github.com/paritytech
 # Frontier
 fp-evm = { version = "3.0.0-dev", path = "../../primitives/evm", default-features = false }
 
+ed25519-dalek = { version = "1.0.0", default-features = false, features = ["alloc", "u64_backend"] }
+
 [dev-dependencies]
 pallet-balances = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-evm-precompile-simple = { path = "./precompile/simple" }

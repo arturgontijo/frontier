@@ -15,6 +15,8 @@ frame-support = { version = "4.0.0-dev", git = "https://github.com/paritytech/su
 fp-evm = { version = "3.0.0-dev", path = "../../../../primitives/evm", default-features = false }
 pallet-evm = { version = "6.0.0-dev", path = "../..", default-features = false }
 
+scale-info = { version = "2.3.0", default-features = false, features = ["derive"] }
+
 [dev-dependencies]
 codec = { package = "parity-scale-codec", version = "3.2.1", features = ["derive"] }
 scale-info = { version = "2.3.0", features = ["derive"] }
@@ -37,4 +39,5 @@ std = [
 	# Frontier
 	"fp-evm/std",
 	"pallet-evm/std",
+	"scale-info/std",
 ]

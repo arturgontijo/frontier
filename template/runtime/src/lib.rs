@@ -40,7 +40,8 @@ use pallet_transaction_payment::CurrencyAdapter;
 use fp_rpc::TransactionStatus;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{
-	Account as EVMAccount, EnsureAddressTruncated, FeeCalculator, HashedAddressMapping, Runner,
+	Account as EVMAccount, EnsureAddressTruncated, EvmConfig, FeeCalculator, HashedAddressMapping,
+	Runner,
 };
 
 // A few exports that help ease life for downstream crates.
@@ -57,7 +58,9 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
+mod evm_config;
 mod precompiles;
+
 use precompiles::FrontierPrecompiles;
 
 /// Type of block number.
@@ -320,8 +323,8 @@ impl pallet_evm::Config for Runtime {
 	type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
 	type WeightPerGas = WeightPerGas;
 	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
-	type CallOrigin = EnsureAddressTruncated;
-	type WithdrawOrigin = EnsureAddressTruncated;
+	type CallOrigin = EnsureAddressTruncated<Self>;
+	type WithdrawOrigin = EnsureAddressTruncated<Self>;
 	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
@@ -332,6 +335,9 @@ impl pallet_evm::Config for Runtime {
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
 	type OnChargeTransaction = ();
 	type FindAuthor = FindAuthorTruncated<Aura>;
+	fn config() -> &'static EvmConfig {
+		&evm_config::EVM_LIMITLESS_CONFIG
+	}
 }
 
 impl pallet_ethereum::Config for Runtime {
