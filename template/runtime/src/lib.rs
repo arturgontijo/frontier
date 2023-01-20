@@ -9,7 +9,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use codec::{Decode, Encode};
+use scale_codec::{Decode, Encode};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{
@@ -23,7 +23,7 @@ use sp_runtime::{
 		IdentifyAccount, NumberFor, PostDispatchInfoOf, UniqueSaturatedInto, Verify,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-	ApplyExtrinsicResult, MultiSignature, Perbill, Permill,
+	ApplyExtrinsicResult, ConsensusEngineId, MultiSignature, Perbill, Permill,
 };
 use sp_std::{marker::PhantomData, prelude::*};
 use sp_version::RuntimeVersion;
@@ -32,6 +32,11 @@ use sp_version::RuntimeVersion;
 use frame_support::weights::constants::ParityDbWeight as RuntimeDbWeight;
 #[cfg(feature = "with-rocksdb-weights")]
 use frame_support::weights::constants::RocksDbWeight as RuntimeDbWeight;
+use frame_support::{
+	construct_runtime, parameter_types,
+	traits::{ConstU32, ConstU8, FindAuthor, KeyOwnerProofSystem, OnTimestampSet},
+	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, ConstantMultiplier, IdentityFee, Weight},
+};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -45,15 +50,6 @@ use pallet_evm::{
 };
 
 // A few exports that help ease life for downstream crates.
-pub use frame_support::{
-	construct_runtime, parameter_types,
-	traits::{ConstU32, ConstU8, FindAuthor, KeyOwnerProofSystem, Randomness},
-	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND},
-		ConstantMultiplier, IdentityFee, Weight,
-	},
-	ConsensusEngineId, StorageValue,
-};
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -243,15 +239,23 @@ impl pallet_grandpa::Config for Runtime {
 
 parameter_types! {
 	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
+	pub storage EnableManualSeal: bool = false;
+}
+
+pub struct ConsensusOnTimestampSet<T>(PhantomData<T>);
+impl<T: pallet_aura::Config> OnTimestampSet<T::Moment> for ConsensusOnTimestampSet<T> {
+	fn on_timestamp_set(moment: T::Moment) {
+		if EnableManualSeal::get() {
+			return;
+		}
+		<pallet_aura::Pallet<T> as OnTimestampSet<T::Moment>>::on_timestamp_set(moment)
+	}
 }
 
 impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
 	type Moment = u64;
-	#[cfg(feature = "aura")]
-	type OnTimestampSet = Aura;
-	#[cfg(feature = "manual-seal")]
-	type OnTimestampSet = ();
+	type OnTimestampSet = ConsensusOnTimestampSet<Self>;
 	type MinimumPeriod = MinimumPeriod;
 	type WeightInfo = ();
 }
@@ -406,6 +410,7 @@ construct_runtime!(
 	}
 );
 
+#[derive(Clone)]
 pub struct TransactionConverter;
 
 impl fp_rpc::ConvertTransaction<UncheckedExtrinsic> for TransactionConverter {
