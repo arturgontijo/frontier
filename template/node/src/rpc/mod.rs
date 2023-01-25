@@ -24,6 +24,14 @@ use frontier_template_runtime::{opaque::Block, AccountId, Balance, Hash, Index};
 mod eth;
 pub use self::eth::{create_eth, overrides_handle, EthDeps};
 
+pub mod tracing;
+
+#[derive(Clone)]
+pub struct EvmTracingConfig {
+	pub tracing_requesters: tracing::RpcRequesters,
+	pub trace_filter_max_count: u32,
+}
+
 /// Full client dependencies.
 pub struct FullDeps<C, P, A: ChainApi, CT> {
 	/// The client instance to use.
@@ -42,6 +50,7 @@ pub struct FullDeps<C, P, A: ChainApi, CT> {
 pub fn create_full<C, P, BE, A, CT>(
 	deps: FullDeps<C, P, A, CT>,
 	subscription_task_executor: SubscriptionTaskExecutor,
+	tracing_config: EvmTracingConfig,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
 	BE: Backend<Block> + 'static,
@@ -53,6 +62,7 @@ where
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: BlockBuilder<Block>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+	C::Api: moonbeam_rpc_primitives_debug::DebugRuntimeApi<Block>,
 	C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
 	C::Api: fp_rpc::EthereumRuntimeRPCApi<Block>,
 	P: TransactionPool<Block = Block> + 'static,
@@ -84,7 +94,7 @@ where
 	}
 
 	// Ethereum compatibility RPCs
-	let io = create_eth::<_, _, _, _, _, _>(io, eth, subscription_task_executor)?;
+	let io = create_eth::<_, _, _, _, _, _>(io, eth, subscription_task_executor, tracing_config)?;
 
 	Ok(io)
 }

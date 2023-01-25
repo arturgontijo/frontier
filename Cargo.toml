@@ -26,6 +26,16 @@ members = [
 	"primitives/self-contained",
 	"template/node",
 	"template/runtime",
+	"evm-tracing",
+	"evm-tracing/primitives/rpc/debug",
+	"evm-tracing/primitives/rpc/evm-tracing-events",
+	"evm-tracing/primitives/rpc/txpool",
+	"evm-tracing/rpc/debug",
+	"evm-tracing/rpc/trace",
+	"evm-tracing/rpc-core/debug",
+	"evm-tracing/rpc-core/trace",
+	"evm-tracing/rpc-core/txpool",
+	"evm-tracing/rpc-core/types",
 ]
 resolver = "2"
 
@@ -91,6 +101,9 @@ sp-timestamp = { version = "4.0.0-dev", git = "https://github.com/paritytech/sub
 sp-transaction-pool = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
 sp-trie = { version = "7.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
 sp-version = { version = "5.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
+sc-utils = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
+sp-runtime-interface = { version = "7.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
+sp-externalities = { version = "0.13.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
 # Substrate FRAME
 frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }
 frame-executive = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.36", default-features = false }

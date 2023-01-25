@@ -31,6 +31,9 @@ pub use crate::{
 	eth::{db_config_dir, EthConfiguration},
 };
 
+use crate::cli::{EthApi as EthApiCmd, EvmTracingConfig};
+use crate::rpc::tracing;
+
 type BasicImportQueue<Client> = sc_consensus::DefaultImportQueue<Block, Client>;
 type FullPool<Client> = sc_transaction_pool::FullPool<Block, Client>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
@@ -257,12 +260,14 @@ pub fn new_full<RuntimeApi, Executor>(
 	mut config: Configuration,
 	eth_config: EthConfiguration,
 	sealing: Option<Sealing>,
+	tracing_config: EvmTracingConfig,
 ) -> Result<TaskManager, ServiceError>
 where
 	RuntimeApi: ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>>,
 	RuntimeApi: Send + Sync + 'static,
 	RuntimeApi::RuntimeApi:
-		RuntimeApiCollection<StateBackend = StateBackendFor<FullBackend, Block>>,
+		RuntimeApiCollection<StateBackend = StateBackendFor<FullBackend, Block>>
+		+ moonbeam_rpc_primitives_debug::DebugRuntimeApi<Block>,
 	Executor: NativeExecutionDispatch + 'static,
 {
 	let build_import_queue = if sealing.is_some() {
@@ -368,9 +373,35 @@ where
 		execute_gas_limit_multiplier: eth_config.execute_gas_limit_multiplier,
 	};
 
+	let ethapi_cmd = tracing_config.ethapi.clone();
+	let tracing_requesters =
+		if ethapi_cmd.contains(&EthApiCmd::Debug) || ethapi_cmd.contains(&EthApiCmd::Trace) {
+			tracing::spawn_tracing_tasks(
+				&tracing_config,
+				tracing::SpawnTasksParams {
+					task_manager: &task_manager,
+					client: client.clone(),
+					substrate_backend: backend.clone(),
+					frontier_backend: frontier_backend.clone(),
+					filter_pool: filter_pool.clone(),
+					overrides: overrides.clone(),
+				},
+			)
+		} else {
+			tracing::RpcRequesters {
+				debug: None,
+				trace: None,
+			}
+		};
+
 	let rpc_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
+
+		let rpc_config = crate::rpc::EvmTracingConfig {
+			tracing_requesters,
+			trace_filter_max_count: tracing_config.ethapi_trace_max_count,
+		};
 
 		Box::new(move |deny_unsafe, subscription_task_executor| {
 			let deps = crate::rpc::FullDeps {
@@ -385,7 +416,7 @@ where
 				eth: eth_rpc_params.clone(),
 			};
 
-			crate::rpc::create_full(deps, subscription_task_executor).map_err(Into::into)
+			crate::rpc::create_full(deps, subscription_task_executor, rpc_config.clone()).map_err(Into::into)
 		})
 	};
 
@@ -629,9 +660,10 @@ pub fn build_full(
 	config: Configuration,
 	eth_config: EthConfiguration,
 	sealing: Option<Sealing>,
+	tracing_config: EvmTracingConfig,
 ) -> Result<TaskManager, ServiceError> {
 	new_full::<frontier_template_runtime::RuntimeApi, TemplateRuntimeExecutor>(
-		config, eth_config, sealing,
+		config, eth_config, sealing, tracing_config,
 	)
 }
 

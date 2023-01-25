@@ -27,6 +27,7 @@ use crate::{
 	cli::{Cli, Subcommand},
 	service::{self, db_config_dir},
 };
+use crate::cli::EthApi;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
@@ -73,7 +74,9 @@ impl SubstrateCli for Cli {
 
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
+	println!("LOL0.1");
 	let cli = Cli::parse();
+	println!("LOL0.2");
 
 	match &cli.subcommand {
 		Some(Subcommand::Key(cmd)) => cmd.run(&cli),
@@ -213,9 +216,24 @@ pub fn run() -> sc_cli::Result<()> {
 			})
 		}
 		None => {
-			let runner = cli.create_runner(&cli.run)?;
+			println!("LOL1");
+			let runner = cli.create_runner(&(cli.run))?;
+
+			let tracing_config = crate::cli::EvmTracingConfig {
+				ethapi: vec![EthApi::Trace, EthApi::Debug],
+				ethapi_max_permits: 10,
+				ethapi_trace_max_count: 500,
+				ethapi_trace_cache_duration: 300,
+				eth_log_block_cache: 300000000,
+				eth_statuses_cache: 300000000,
+				tracing_raw_max_memory_usage: 20000000,
+				max_past_logs: 10000,
+			};
+
+			println!("LOL2");
+
 			runner.run_node_until_exit(|config| async move {
-				service::build_full(config, cli.eth, cli.sealing).map_err(Into::into)
+				service::build_full(config, cli.eth, cli.sealing, tracing_config).map_err(Into::into)
 			})
 		}
 	}

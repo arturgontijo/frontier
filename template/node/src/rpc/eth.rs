@@ -23,6 +23,10 @@ pub use fc_rpc::{
 pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use fp_storage::EthereumStorageSchema;
 
+use crate::rpc::EvmTracingConfig;
+use moonbeam_rpc_debug::{Debug, DebugServer};
+use moonbeam_rpc_trace::{Trace, TraceServer};
+
 /// Extra dependencies for Ethereum compatibility.
 pub struct EthDeps<C, P, A: ChainApi, CT, B: BlockT> {
 	/// The client instance to use.
@@ -117,6 +121,7 @@ pub fn create_eth<C, BE, P, A, CT, B>(
 	mut io: RpcModule<()>,
 	deps: EthDeps<C, P, A, CT, B>,
 	subscription_task_executor: SubscriptionTaskExecutor,
+	tracing_config: EvmTracingConfig,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
 	C: ProvideRuntimeApi<B> + StorageProvider<B, BE> + AuxStore,
@@ -125,6 +130,7 @@ where
 	C::Api: sp_block_builder::BlockBuilder<B>,
 	C::Api: fp_rpc::EthereumRuntimeRPCApi<B>,
 	C::Api: fp_rpc::ConvertTransactionRuntimeApi<B>,
+	C::Api: moonbeam_rpc_primitives_debug::DebugRuntimeApi<B>,
 	BE: Backend<B> + 'static,
 	BE::State: StateBackend<BlakeTwo256>,
 	P: TransactionPool<Block = B> + 'static,
@@ -215,7 +221,22 @@ where
 		.into_rpc(),
 	)?;
 
-	io.merge(Web3::new(client).into_rpc())?;
+	io.merge(Web3::new(client.clone()).into_rpc())?;
+
+	if let Some(trace_filter_requester) = tracing_config.tracing_requesters.trace {
+		io.merge(
+			Trace::new(
+				client,
+				trace_filter_requester,
+				tracing_config.trace_filter_max_count,
+			)
+				.into_rpc(),
+		)?;
+	}
+
+	if let Some(debug_requester) = tracing_config.tracing_requesters.debug {
+		io.merge(Debug::new(debug_requester).into_rpc())?;
+	}
 
 	Ok(io)
 }
