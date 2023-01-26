@@ -74,9 +74,7 @@ impl SubstrateCli for Cli {
 
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
-	println!("LOL0.1");
 	let cli = Cli::parse();
-	println!("LOL0.2");
 
 	match &cli.subcommand {
 		Some(Subcommand::Key(cmd)) => cmd.run(&cli),
@@ -216,7 +214,6 @@ pub fn run() -> sc_cli::Result<()> {
 			})
 		}
 		None => {
-			println!("LOL1");
 			let runner = cli.create_runner(&(cli.run))?;
 
 			let tracing_config = crate::cli::EvmTracingConfig {
@@ -229,8 +226,6 @@ pub fn run() -> sc_cli::Result<()> {
 				tracing_raw_max_memory_usage: 20000000,
 				max_past_logs: 10000,
 			};
-
-			println!("LOL2");
 
 			runner.run_node_until_exit(|config| async move {
 				service::build_full(config, cli.eth, cli.sealing, tracing_config).map_err(Into::into)
