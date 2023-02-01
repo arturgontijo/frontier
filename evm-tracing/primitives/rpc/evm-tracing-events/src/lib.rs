@@ -39,8 +39,8 @@ pub use self::evm::EvmEvent;
 pub use gasometer::GasometerEvent;
 pub use runtime::RuntimeEvent;
 
-use scale_codec::{Decode, Encode};
 use ethereum_types::{H160, U256};
+use scale_codec::{Decode, Encode};
 use sp_runtime_interface::pass_by::PassByCodec;
 
 environmental::environmental!(listener: dyn Listener + 'static);

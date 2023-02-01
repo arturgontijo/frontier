@@ -230,7 +230,7 @@ where
 				trace_filter_requester,
 				tracing_config.trace_filter_max_count,
 			)
-				.into_rpc(),
+			.into_rpc(),
 		)?;
 	}
 

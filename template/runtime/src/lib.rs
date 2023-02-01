@@ -339,7 +339,7 @@ impl pallet_evm::Config for Runtime {
 	type ChainId = EVMChainId;
 	type BlockGasLimit = BlockGasLimit;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	type OnChargeTransaction = ();
+	type OnChargeTransaction = pallet_evm::GasLessEVMCurrencyAdapter;
 	type FindAuthor = FindAuthorTruncated<Aura>;
 	fn config() -> &'static EvmConfig {
 		&evm_config::EVM_LIMITLESS_CONFIG
@@ -761,14 +761,14 @@ impl_runtime_apis! {
 		fn gas_limit_multiplier_support() {}
 	}
 
-    impl moonbeam_rpc_primitives_debug::DebugRuntimeApi<Block> for Runtime {
-        fn trace_transaction(
-            extrinsics: Vec<<Block as BlockT>::Extrinsic>,
-            traced_transaction: &pallet_ethereum::Transaction,
-        ) -> Result<
-            (),
-            sp_runtime::DispatchError,
-        > {
+	impl moonbeam_rpc_primitives_debug::DebugRuntimeApi<Block> for Runtime {
+		fn trace_transaction(
+			extrinsics: Vec<<Block as BlockT>::Extrinsic>,
+			traced_transaction: &pallet_ethereum::Transaction,
+		) -> Result<
+			(),
+			sp_runtime::DispatchError,
+		> {
 			#[cfg(feature = "evm-tracing")]
 			{
 				use moonbeam_evm_tracer::tracer::EvmTracer;
@@ -797,15 +797,15 @@ impl_runtime_apis! {
 			Err(sp_runtime::DispatchError::Other(
 				"Missing `evm-tracing` compile time feature flag.",
 			))
-        }
+		}
 
-        fn trace_block(
-            extrinsics: Vec<<Block as BlockT>::Extrinsic>,
-            known_transactions: Vec<H256>,
-        ) -> Result<
-            (),
-            sp_runtime::DispatchError,
-        > {
+		fn trace_block(
+			extrinsics: Vec<<Block as BlockT>::Extrinsic>,
+			known_transactions: Vec<H256>,
+		) -> Result<
+			(),
+			sp_runtime::DispatchError,
+		> {
 			#[cfg(feature = "evm-tracing")]
 			{
 				use moonbeam_evm_tracer::tracer::EvmTracer;
@@ -836,8 +836,8 @@ impl_runtime_apis! {
 			Err(sp_runtime::DispatchError::Other(
 				"Missing `evm-tracing` compile time feature flag.",
 			))
-        }
-    }
+		}
+	}
 
 	impl fp_rpc::ConvertTransactionRuntimeApi<Block> for Runtime {
 		fn convert_transaction(transaction: EthereumTransaction) -> <Block as BlockT>::Extrinsic {

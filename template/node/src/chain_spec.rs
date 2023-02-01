@@ -88,7 +88,7 @@ pub fn development_config(enable_manual_seal: Option<bool>) -> DevChainSpec {
 					],
 					// Initial PoA authorities
 					vec![authority_keys_from_seed("Alice")],
-					42,
+					1337,
 				),
 				enable_manual_seal,
 			}
@@ -141,7 +141,7 @@ pub fn local_testnet_config() -> ChainSpec {
 					authority_keys_from_seed("Alice"),
 					authority_keys_from_seed("Bob"),
 				],
-				42,
+				1337,
 			)
 		},
 		// Bootnodes

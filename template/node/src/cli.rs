@@ -30,7 +30,6 @@ pub struct Cli {
 
 	#[command(flatten)]
 	pub eth: EthConfiguration,
-
 	// /// Enable EVM tracing module on a non-authority node.
 	// #[arg(
 	// 	long,

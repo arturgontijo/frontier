@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moonbeam.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::listeners::call_list::Listener;
-use crate::types::serialization::*;
-use crate::types::{
-	single::{Call, TransactionTrace},
-	CallResult, CallType, CreateResult,
+use crate::{
+	listeners::call_list::Listener,
+	types::{
+		serialization::*,
+		single::{Call, TransactionTrace},
+		CallResult, CallType, CreateResult,
+	},
 };
-use scale_codec::{Decode, Encode};
 use ethereum_types::{H160, U256};
+use scale_codec::{Decode, Encode};
 use serde::Serialize;
 
 pub struct Formatter;

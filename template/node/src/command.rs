@@ -24,10 +24,9 @@ use fc_db::frontier_database_dir;
 
 use crate::{
 	chain_spec,
-	cli::{Cli, Subcommand},
+	cli::{Cli, EthApi, Subcommand},
 	service::{self, db_config_dir},
 };
-use crate::cli::EthApi;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
@@ -228,7 +227,8 @@ pub fn run() -> sc_cli::Result<()> {
 			};
 
 			runner.run_node_until_exit(|config| async move {
-				service::build_full(config, cli.eth, cli.sealing, tracing_config).map_err(Into::into)
+				service::build_full(config, cli.eth, cli.sealing, tracing_config)
+					.map_err(Into::into)
 			})
 		}
 	}

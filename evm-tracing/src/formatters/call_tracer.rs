@@ -25,8 +25,8 @@ use crate::listeners::call_list::Listener;
 use crate::types::serialization::*;
 use serde::Serialize;
 
-use scale_codec::{Decode, Encode};
 use ethereum_types::{H160, U256};
+use scale_codec::{Decode, Encode};
 use sp_std::{cmp::Ordering, vec::Vec};
 
 pub struct Formatter;
@@ -51,9 +51,9 @@ impl super::ResponseFormatter for Formatter {
 					let gas_used = it.gas_used;
 					let inner = it.inner.clone();
 					Call::CallTracer(CallTracerCall {
-						from: from,
-						gas: gas,
-						gas_used: gas_used,
+						from,
+						gas,
+						gas_used,
 						trace_address: Some(trace_address.clone()),
 						inner: match inner.clone() {
 							BlockscoutCallInner::Call {
@@ -93,7 +93,7 @@ impl super::ResponseFormatter for Formatter {
 									} => Some(created_contract_code),
 									CreateResult::Error { .. } => None,
 								},
-								value: value,
+								value,
 								call_type: "CREATE".as_bytes().to_vec(),
 							},
 							BlockscoutCallInner::SelfDestruct { balance, to } => {

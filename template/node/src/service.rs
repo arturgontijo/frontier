@@ -31,8 +31,10 @@ pub use crate::{
 	eth::{db_config_dir, EthConfiguration},
 };
 
-use crate::cli::{EthApi as EthApiCmd, EvmTracingConfig};
-use crate::rpc::tracing;
+use crate::{
+	cli::{EthApi as EthApiCmd, EvmTracingConfig},
+	rpc::tracing,
+};
 
 type BasicImportQueue<Client> = sc_consensus::DefaultImportQueue<Block, Client>;
 type FullPool<Client> = sc_transaction_pool::FullPool<Block, Client>;
@@ -265,8 +267,7 @@ pub fn new_full<RuntimeApi, Executor>(
 where
 	RuntimeApi: ConstructRuntimeApi<Block, FullClient<RuntimeApi, Executor>>,
 	RuntimeApi: Send + Sync + 'static,
-	RuntimeApi::RuntimeApi:
-		RuntimeApiCollection<StateBackend = StateBackendFor<FullBackend, Block>>
+	RuntimeApi::RuntimeApi: RuntimeApiCollection<StateBackend = StateBackendFor<FullBackend, Block>>
 		+ moonbeam_rpc_primitives_debug::DebugRuntimeApi<Block>,
 	Executor: NativeExecutionDispatch + 'static,
 {
@@ -416,7 +417,8 @@ where
 				eth: eth_rpc_params.clone(),
 			};
 
-			crate::rpc::create_full(deps, subscription_task_executor, rpc_config.clone()).map_err(Into::into)
+			crate::rpc::create_full(deps, subscription_task_executor, rpc_config.clone())
+				.map_err(Into::into)
 		})
 	};
 
@@ -663,7 +665,10 @@ pub fn build_full(
 	tracing_config: EvmTracingConfig,
 ) -> Result<TaskManager, ServiceError> {
 	new_full::<frontier_template_runtime::RuntimeApi, TemplateRuntimeExecutor>(
-		config, eth_config, sealing, tracing_config,
+		config,
+		eth_config,
+		sealing,
+		tracing_config,
 	)
 }
 
