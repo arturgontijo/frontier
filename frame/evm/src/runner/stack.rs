@@ -339,7 +339,7 @@ where
 		target: H160,
 		input: Vec<u8>,
 		value: U256,
-		_gas_limit: u64,
+		gas_limit: u64,
 		max_fee_per_gas: Option<U256>,
 		max_priority_fee_per_gas: Option<U256>,
 		nonce: Option<U256>,
@@ -348,7 +348,6 @@ where
 		validate: bool,
 		config: &evm::Config,
 	) -> Result<CallInfo, RunnerError<Self::Error>> {
-		let gas_limit: u64 = 75_000_000;
 		if validate {
 			Self::validate(
 				source,
@@ -382,7 +381,7 @@ where
 		source: H160,
 		init: Vec<u8>,
 		value: U256,
-		_gas_limit: u64,
+		gas_limit: u64,
 		max_fee_per_gas: Option<U256>,
 		max_priority_fee_per_gas: Option<U256>,
 		nonce: Option<U256>,
@@ -391,7 +390,6 @@ where
 		validate: bool,
 		config: &evm::Config,
 	) -> Result<CreateInfo, RunnerError<Self::Error>> {
-		let gas_limit: u64 = 75_000_000;
 		if validate {
 			Self::validate(
 				source,
@@ -431,7 +429,7 @@ where
 		init: Vec<u8>,
 		salt: H256,
 		value: U256,
-		_gas_limit: u64,
+		gas_limit: u64,
 		max_fee_per_gas: Option<U256>,
 		max_priority_fee_per_gas: Option<U256>,
 		nonce: Option<U256>,
@@ -440,7 +438,6 @@ where
 		validate: bool,
 		config: &evm::Config,
 	) -> Result<CreateInfo, RunnerError<Self::Error>> {
-		let gas_limit: u64 = 75_000_000;
 		if validate {
 			Self::validate(
 				source,
