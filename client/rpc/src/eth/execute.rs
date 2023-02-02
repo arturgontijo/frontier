@@ -418,7 +418,7 @@ where
 							gas_price,
 							allowance
 						);
-					highest = allowance;
+					// highest = allowance; // [Artur: gas less]]
 				}
 			}
 		}

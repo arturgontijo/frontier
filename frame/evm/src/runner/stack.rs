@@ -329,7 +329,7 @@ where
 		)
 		.validate_in_block_for(&source_account)
 		.and_then(|v| v.with_base_fee())
-		.and_then(|v| v.with_balance_for(&source_account))
+		// .and_then(|v| v.with_balance_for(&source_account)) // [Artur: gas less]]
 		.map_err(|error| RunnerError { error, weight })?;
 		Ok(())
 	}

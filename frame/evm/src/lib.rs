@@ -770,8 +770,7 @@ impl<T: Config> Pallet<T> {
 		(
 			Account {
 				nonce: U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(nonce)),
-				balance: U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(balance)) +
-					U256::from("0xDE0B6B3A7640000"), // +1 Fake Ether
+				balance: U256::from(UniqueSaturatedInto::<u128>::unique_saturated_into(balance)),
 			},
 			T::DbWeight::get().reads(2),
 		)
