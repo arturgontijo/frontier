@@ -10,8 +10,8 @@ version = "0.1.0"
 [dependencies]
 
 # Moonbeam
-evm-tracing-events = { path = "../../../evm-tracing/primitives/rpc/evm-tracing-events", default-features = false, features = [ "evm-tracing" ] }
-moonbeam-primitives-ext = { path = "../../../evm-tracing/ext", default-features = false }
+evm-tracing-events = { path = "../primitives/rpc/evm-tracing-events", default-features = false, features = [ "evm-tracing" ] }
+moonbeam-primitives-ext = { path = "../ext", default-features = false }
 
 # Substrate
 scale-codec = { package = "parity-scale-codec", workspace = true }
@@ -26,7 +26,7 @@ evm = { version = "0.37.0", default-features = false, features = [ "with-codec" 
 evm-gasometer = { version = "0.37.0", default-features = false }
 evm-runtime = { version = "0.37.0", default-features = false }
 fp-evm = { workspace = true }
-pallet-evm = { path = "../../../frame/evm", default-features = false, features = [ "forbid-evm-reentrancy" ] }
+pallet-evm = { path = "../../frame/evm", default-features = false, features = [ "forbid-evm-reentrancy" ] }
 
 [features]
 default = [ "std" ]

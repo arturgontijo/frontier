@@ -58,7 +58,7 @@ pallet-hotfix-sufficients = { workspace = true }
 
 evm-tracing-events = { path = "../../evm-tracing/primitives/rpc/evm-tracing-events", default-features = false, optional = true }
 moonbeam-rpc-primitives-debug = { path = "../../evm-tracing/primitives/rpc/debug", default-features = false }
-moonbeam-evm-tracer = { path = "evm_tracer", optional = true, default-features = false }
+moonbeam-evm-tracer = { path = "../../evm-tracing/evm_tracer", optional = true, default-features = false }
 rlp = { version = "0.5", optional = true, default-features = false }
 sha3 = { version = "0.10", optional = true, default-features = false }
 
