@@ -892,3 +892,29 @@ U256: UniqueSaturatedInto<BalanceOf<T>>,
 		<EVMCurrencyAdapter::<<T as Config>::Currency, ()> as OnChargeEVMTransaction<T>>::pay_priority_fee(tip);
 	}
 }
+
+/// Implementation for gas less network
+pub struct GasLessEVMCurrencyAdapter;
+impl<T> OnChargeEVMTransaction<T> for GasLessEVMCurrencyAdapter
+	where
+		T: Config,
+		<T::Currency as Currency<<T as frame_system::Config>::AccountId>>::PositiveImbalance:
+		Imbalance<<T::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance, Opposite = <T::Currency as Currency<<T as frame_system::Config>::AccountId>>::NegativeImbalance>,
+		<T::Currency as Currency<<T as frame_system::Config>::AccountId>>::NegativeImbalance:
+		Imbalance<<T::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance, Opposite = <T::Currency as Currency<<T as frame_system::Config>::AccountId>>::PositiveImbalance>,
+		U256: UniqueSaturatedInto<BalanceOf<T>>,
+
+{
+	type LiquidityInfo = ();
+
+	fn withdraw_fee(_who: &H160, _fee: U256) -> Result<Self::LiquidityInfo, Error<T>> { Ok(()) }
+
+	fn correct_and_deposit_fee(
+		_who: &H160,
+		_corrected_fee: U256,
+		_base_fee: U256,
+		_already_withdrawn: Self::LiquidityInfo,
+	) -> Self::LiquidityInfo { () }
+
+	fn pay_priority_fee(_tip: Self::LiquidityInfo) { }
+}
