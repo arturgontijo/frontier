@@ -35,7 +35,7 @@ pub const fn limitless() -> EvmConfig {
 		stack_limit: 1024,
 		memory_limit: usize::MAX,
 		call_stack_limit: 1024,
-		create_contract_limit: Some(0xFFFF),
+		create_contract_limit: None,
 		call_stipend: 0,
 		has_delegate_call: true,
 		has_create2: true,
