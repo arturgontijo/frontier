@@ -45,7 +45,8 @@ use pallet_transaction_payment::CurrencyAdapter;
 use fp_rpc::TransactionStatus;
 use pallet_ethereum::{Call::transact, Transaction as EthereumTransaction};
 use pallet_evm::{
-	Account as EVMAccount, EnsureAddressTruncated, FeeCalculator, HashedAddressMapping, Runner,
+	Account as EVMAccount, EnsureAddressTruncated, EvmConfig, FeeCalculator, HashedAddressMapping,
+	Runner,
 };
 
 // A few exports that help ease life for downstream crates.
@@ -53,7 +54,9 @@ pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 
+mod evm_config;
 mod precompiles;
+
 use precompiles::FrontierPrecompiles;
 
 /// Type of block number.
@@ -334,8 +337,11 @@ impl pallet_evm::Config for Runtime {
 	type ChainId = EVMChainId;
 	type BlockGasLimit = BlockGasLimit;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	type OnChargeTransaction = ();
+	type OnChargeTransaction = pallet_evm::GasLessEVMCurrencyAdapter;
 	type FindAuthor = FindAuthorTruncated<Aura>;
+	fn config() -> &'static EvmConfig {
+		&evm_config::EVM_LIMITLESS_CONFIG
+	}
 }
 
 impl pallet_ethereum::Config for Runtime {
@@ -352,8 +358,8 @@ impl pallet_dynamic_fee::Config for Runtime {
 }
 
 parameter_types! {
-	pub DefaultBaseFeePerGas: U256 = U256::from(1_000_000_000);
-	pub DefaultElasticity: Permill = Permill::from_parts(125_000);
+	pub DefaultBaseFeePerGas: U256 = U256::zero();
+	pub DefaultElasticity: Permill = Permill::zero();
 }
 
 pub struct BaseFeeThreshold;
@@ -362,10 +368,10 @@ impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
 		Permill::zero()
 	}
 	fn ideal() -> Permill {
-		Permill::from_parts(500_000)
+		Permill::zero()
 	}
 	fn upper() -> Permill {
-		Permill::from_parts(1_000_000)
+		Permill::zero()
 	}
 }
 

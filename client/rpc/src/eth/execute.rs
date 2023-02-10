@@ -375,7 +375,7 @@ where
 		let api = client.runtime_api();
 
 		// Determine the highest possible gas limits
-		let mut highest = match request.gas {
+		let highest = match request.gas {
 			Some(amount) => {
 				if amount > max_gas_limit {
 					return Err(internal_err(format!(
@@ -418,7 +418,7 @@ where
 							gas_price,
 							allowance
 						);
-					highest = allowance;
+					// highest = allowance; // [Artur: gas less]]
 				}
 			}
 		}
