@@ -360,8 +360,8 @@ impl pallet_dynamic_fee::Config for Runtime {
 }
 
 parameter_types! {
-	pub DefaultBaseFeePerGas: U256 = U256::from(1_000_000_000);
-	pub DefaultElasticity: Permill = Permill::from_parts(125_000);
+	pub DefaultBaseFeePerGas: U256 = U256::zero();
+	pub DefaultElasticity: Permill = Permill::zero();
 }
 
 pub struct BaseFeeThreshold;
@@ -370,10 +370,10 @@ impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
 		Permill::zero()
 	}
 	fn ideal() -> Permill {
-		Permill::from_parts(500_000)
+		Permill::zero()
 	}
 	fn upper() -> Permill {
-		Permill::from_parts(1_000_000)
+		Permill::zero()
 	}
 }
 

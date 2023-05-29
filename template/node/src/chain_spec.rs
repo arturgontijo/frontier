@@ -151,6 +151,8 @@ pub fn local_testnet_config() -> ChainSpec {
 				vec![
 					authority_keys_from_seed("Alice"),
 					authority_keys_from_seed("Bob"),
+					authority_keys_from_seed("Charlie"),
+					authority_keys_from_seed("Dave"),
 				],
 				42,
 			)

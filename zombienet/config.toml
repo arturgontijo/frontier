@@ -1,0 +1,33 @@
+[relaychain]
+default_command = "./target/release/frontier-template-node"
+chain = "local"
+
+    [[relaychain.nodes]]
+    name = "alice"
+    validator = true
+    ws_port = 9900
+
+    [[relaychain.nodes]]
+    name = "bob"
+    validator = true
+    ws_port = 9901
+
+    [[relaychain.nodes]]
+    name = "charlie"
+    validator = true
+    ws_port = 9902
+
+    [[relaychain.nodes]]
+    name = "dave"
+    validator = true
+    ws_port = 9903
+
+    [[relaychain.nodes]]
+    name = "access1"
+    validator = false
+    ws_port = 8545
+
+    [[relaychain.nodes]]
+    name = "access2"
+    validator = false
+    ws_port = 8546
