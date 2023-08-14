@@ -58,6 +58,13 @@ pallet-evm-precompile-sha3fips = { workspace = true }
 pallet-evm-precompile-simple = { workspace = true }
 pallet-hotfix-sufficients = { workspace = true }
 
+# Moonbeam tracing
+evm-tracing-events = { workspace = true, optional = true }
+moonbeam-evm-tracer = { workspace = true, optional = true }
+moonbeam-rpc-primitives-debug = { workspace = true }
+rlp = { workspace = true, optional = true }
+sha3 = { workspace = true, optional = true }
+
 [build-dependencies]
 substrate-wasm-builder = { workspace = true, optional = true }
 
@@ -110,6 +117,9 @@ std = [
 	"pallet-evm-precompile-sha3fips/std",
 	"pallet-evm-precompile-simple/std",
 	"pallet-hotfix-sufficients/std",
+	"evm-tracing-events/std",
+	"moonbeam-evm-tracer/std",
+	"moonbeam-rpc-primitives-debug/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
@@ -123,3 +133,5 @@ runtime-benchmarks = [
 	"pallet-evm/runtime-benchmarks",
 	"pallet-hotfix-sufficients/runtime-benchmarks",
 ]
+
+evm-tracing = ["evm-tracing-events", "moonbeam-evm-tracer", "rlp", "sha3"]

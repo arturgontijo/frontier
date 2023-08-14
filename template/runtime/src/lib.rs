@@ -48,7 +48,7 @@ use fp_evm::weight_per_gas;
 use fp_rpc::TransactionStatus;
 use pallet_ethereum::{Call::transact, PostLogContent, Transaction as EthereumTransaction};
 use pallet_evm::{
-	Account as EVMAccount, EnsureAccountId20, FeeCalculator, GasWeightMapping,
+	Account as EVMAccount, EnsureAccountId20, EvmConfig, FeeCalculator, GasWeightMapping,
 	IdentityAddressMapping, Runner,
 };
 
@@ -59,6 +59,8 @@ pub use pallet_timestamp::Call as TimestampCall;
 
 mod precompiles;
 use precompiles::FrontierPrecompiles;
+
+mod evm_config;
 
 /// Type of block number.
 pub type BlockNumber = u32;
@@ -345,6 +347,9 @@ impl pallet_evm::Config for Runtime {
 	type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
 	type Timestamp = Timestamp;
 	type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
+	fn config() -> &'static EvmConfig {
+		&evm_config::EVM_LIMITLESS_CONFIG
+	}
 }
 
 parameter_types! {
@@ -872,6 +877,84 @@ impl_runtime_apis! {
 				pallet_ethereum::CurrentBlock::<Runtime>::get(),
 				pallet_ethereum::CurrentTransactionStatuses::<Runtime>::get()
 			)
+		}
+	}
+
+	impl moonbeam_rpc_primitives_debug::DebugRuntimeApi<Block> for Runtime {
+		fn trace_transaction(
+			_extrinsics: Vec<<Block as BlockT>::Extrinsic>,
+			_traced_transaction: &EthereumTransaction,
+		) -> Result<
+			(),
+			sp_runtime::DispatchError,
+		> {
+			#[cfg(feature = "evm-tracing")]
+			{
+				use moonbeam_evm_tracer::tracer::EvmTracer;
+
+				// Apply the a subset of extrinsics: all the substrate-specific or ethereum
+				// transactions that preceded the requested transaction.
+				for ext in _extrinsics.into_iter() {
+					let _ = match &ext.0.function {
+						RuntimeCall::Ethereum(transact { transaction }) => {
+							if transaction == _traced_transaction {
+								EvmTracer::new().trace(|| Executive::apply_extrinsic(ext));
+								return Ok(());
+							} else {
+								Executive::apply_extrinsic(ext)
+							}
+						}
+						_ => Executive::apply_extrinsic(ext),
+					};
+				}
+				Err(sp_runtime::DispatchError::Other(
+					"Failed to find Ethereum transaction among the extrinsics.",
+				))
+			}
+			#[cfg(not(feature = "evm-tracing"))]
+			Err(sp_runtime::DispatchError::Other(
+				"Missing `evm-tracing` compile time feature flag.",
+			))
+		}
+
+		fn trace_block(
+			_extrinsics: Vec<<Block as BlockT>::Extrinsic>,
+			_known_transactions: Vec<H256>,
+		) -> Result<
+			(),
+			sp_runtime::DispatchError,
+		> {
+			#[cfg(feature = "evm-tracing")]
+			{
+				use moonbeam_evm_tracer::tracer::EvmTracer;
+
+				let mut config = <Runtime as pallet_evm::Config>::config().clone();
+				config.estimate = true;
+
+				// Apply all extrinsics. Ethereum extrinsics are traced.
+				for ext in _extrinsics.into_iter() {
+					match &ext.0.function {
+						RuntimeCall::Ethereum(transact { transaction }) => {
+							if _known_transactions.contains(&transaction.hash()) {
+								// Each known extrinsic is a new call stack.
+								EvmTracer::emit_new();
+								EvmTracer::new().trace(|| Executive::apply_extrinsic(ext));
+							} else {
+								let _ = Executive::apply_extrinsic(ext);
+							}
+						}
+						_ => {
+							let _ = Executive::apply_extrinsic(ext);
+						}
+					};
+				}
+
+				Ok(())
+			}
+			#[cfg(not(feature = "evm-tracing"))]
+			Err(sp_runtime::DispatchError::Other(
+				"Missing `evm-tracing` compile time feature flag.",
+			))
 		}
 	}
 

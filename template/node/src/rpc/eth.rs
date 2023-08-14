@@ -11,16 +11,20 @@ use sc_network_sync::SyncingService;
 use sc_rpc::SubscriptionTaskExecutor;
 use sc_transaction_pool::{ChainApi, Pool};
 use sc_transaction_pool_api::TransactionPool;
-use sp_api::{CallApiAt, ProvideRuntimeApi};
+use sp_api::{CallApiAt, HeaderT, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder as BlockBuilderApi;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_core::H256;
 use sp_runtime::traits::Block as BlockT;
 // Frontier
-pub use fc_rpc::{EthBlockDataCacheTask, EthConfig, OverrideHandle, StorageOverride, TxPool};
+pub use fc_rpc::{EthBlockDataCacheTask, EthConfig, OverrideHandle, StorageOverride};
 pub use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 pub use fc_storage::overrides_handle;
 use fp_rpc::{ConvertTransaction, ConvertTransactionRuntimeApi, EthereumRuntimeRPCApi};
+
+use crate::rpc::EvmTracingConfig;
+use moonbeam_rpc_debug::{Debug, DebugServer};
+use moonbeam_rpc_trace::{Trace, TraceServer};
 
 /// Extra dependencies for Ethereum compatibility.
 pub struct EthDeps<C, P, A: ChainApi, CT, B: BlockT> {
@@ -89,6 +93,7 @@ impl<C, P, A: ChainApi, CT: Clone, B: BlockT> Clone for EthDeps<C, P, A, CT, B> 
 pub fn create_eth<C, BE, P, A, CT, B, EC: EthConfig<B, C>>(
 	mut io: RpcModule<()>,
 	deps: EthDeps<C, P, A, CT, B>,
+	tracing_rpc_config: EvmTracingConfig,
 	subscription_task_executor: SubscriptionTaskExecutor,
 	pubsub_notification_sinks: Arc<
 		fc_mapping_sync::EthereumBlockNotificationSinks<
@@ -97,7 +102,8 @@ pub fn create_eth<C, BE, P, A, CT, B, EC: EthConfig<B, C>>(
 	>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
-	B: BlockT<Hash = sp_core::H256>,
+	B: BlockT<Hash = H256>,
+	B::Header: HeaderT<Number = u32>,
 	C: CallApiAt<B> + ProvideRuntimeApi<B>,
 	C::Api: BlockBuilderApi<B> + ConvertTransactionRuntimeApi<B> + EthereumRuntimeRPCApi<B>,
 	C: BlockchainEvents<B> + 'static,
@@ -105,11 +111,12 @@ where
 	BE: Backend<B> + 'static,
 	P: TransactionPool<Block = B> + 'static,
 	A: ChainApi<Block = B> + 'static,
-	CT: ConvertTransaction<<B as BlockT>::Extrinsic> + Send + Sync + 'static,
+	CT: ConvertTransaction<<B as BlockT>::Extrinsic> + Send + Sync + 'static + Clone,
 {
 	use fc_rpc::{
 		Eth, EthApiServer, EthDevSigner, EthFilter, EthFilterApiServer, EthPubSub,
-		EthPubSubApiServer, EthSigner, Net, NetApiServer, TxPoolApiServer, Web3, Web3ApiServer,
+		EthPubSubApiServer, EthSigner, Net, NetApiServer, TxPool, TxPoolApiServer, Web3,
+		Web3ApiServer,
 	};
 
 	let EthDeps {
@@ -196,8 +203,24 @@ where
 		.into_rpc(),
 	)?;
 
-	io.merge(Web3::new(client).into_rpc())?;
+	io.merge(Web3::new(client.clone()).into_rpc())?;
+
 	io.merge(tx_pool.into_rpc())?;
+
+	if let Some(trace_filter_requester) = tracing_rpc_config.tracing_requesters.trace {
+		io.merge(
+			Trace::new(
+				client.clone(),
+				trace_filter_requester,
+				tracing_rpc_config.trace_filter_max_count,
+			)
+			.into_rpc(),
+		)?;
+	}
+
+	if let Some(debug_requester) = tracing_rpc_config.tracing_requesters.debug.clone() {
+		io.merge(Debug::new(debug_requester).into_rpc())?;
+	}
 
 	Ok(io)
 }

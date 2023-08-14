@@ -247,8 +247,20 @@ pub fn run() -> sc_cli::Result<()> {
 		}
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
+
+			let tracing_config = crate::cli::EvmTracingConfiguration {
+				ethapi: cli.tracing.ethapi,
+				tracing_max_permits: cli.tracing.tracing_max_permits,
+				tracing_max_count: cli.tracing.tracing_max_count,
+				tracing_cache_duration: cli.tracing.tracing_cache_duration,
+				tracing_eth_log_block_cache: cli.eth.eth_log_block_cache,
+				tracing_eth_statuses_cache: cli.eth.eth_statuses_cache,
+				tracing_max_past_logs: cli.eth.max_past_logs,
+				tracing_raw_max_memory_usage: cli.tracing.tracing_raw_max_memory_usage,
+			};
+
 			runner.run_node_until_exit(|config| async move {
-				service::build_full(config, cli.eth, cli.sealing)
+				service::build_full(config, cli.eth, tracing_config, cli.sealing)
 					.map_err(Into::into)
 					.await
 			})

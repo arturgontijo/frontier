@@ -21,6 +21,14 @@ use sp_runtime::traits::Block as BlockT;
 use frontier_template_runtime::{opaque::Block, AccountId, Balance, Hash, Index};
 
 mod eth;
+pub mod tracing;
+
+#[derive(Clone)]
+pub struct EvmTracingConfig {
+	pub tracing_requesters: tracing::RpcRequesters,
+	pub trace_filter_max_count: u32,
+}
+
 pub use self::eth::{create_eth, overrides_handle, EthDeps};
 
 /// Full client dependencies.
@@ -52,6 +60,7 @@ where
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, BE, A, CT>(
 	deps: FullDeps<C, P, A, CT>,
+	tracing_rpc_config: EvmTracingConfig,
 	subscription_task_executor: SubscriptionTaskExecutor,
 	pubsub_notification_sinks: Arc<
 		fc_mapping_sync::EthereumBlockNotificationSinks<
@@ -66,6 +75,7 @@ where
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
 	C::Api: fp_rpc::EthereumRuntimeRPCApi<Block>,
+	C::Api: moonbeam_rpc_primitives_debug::DebugRuntimeApi<Block>,
 	C: BlockchainEvents<Block> + 'static,
 	C: HeaderBackend<Block>
 		+ HeaderMetadata<Block, Error = BlockChainError>
@@ -73,7 +83,7 @@ where
 	BE: Backend<Block> + 'static,
 	P: TransactionPool<Block = Block> + 'static,
 	A: ChainApi<Block = Block> + 'static,
-	CT: fp_rpc::ConvertTransaction<<Block as BlockT>::Extrinsic> + Send + Sync + 'static,
+	CT: fp_rpc::ConvertTransaction<<Block as BlockT>::Extrinsic> + Send + Sync + 'static + Clone,
 {
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
 	use sc_consensus_manual_seal::rpc::{ManualSeal, ManualSealApiServer};
@@ -103,6 +113,7 @@ where
 	let io = create_eth::<_, _, _, _, _, _, DefaultEthConfig<C, BE>>(
 		io,
 		eth,
+		tracing_rpc_config,
 		subscription_task_executor,
 		pubsub_notification_sinks,
 	)?;
