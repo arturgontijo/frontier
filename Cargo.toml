@@ -1,33 +1,33 @@
 [workspace]
 members = [
-	#	"frame/base-fee",
-	#	"frame/dynamic-fee",
-	#	"frame/ethereum",
-	#	"frame/evm",
-	#	"frame/evm-chain-id",
-	#	"frame/hotfix-sufficients",
-	#	"frame/evm/precompile/sha3fips",
-	#	"frame/evm/precompile/simple",
-	#	"frame/evm/precompile/modexp",
-	#	"frame/evm/precompile/ed25519",
-	#	"frame/evm/precompile/bn128",
-	#	"frame/evm/precompile/blake2",
-	#	"frame/evm/precompile/bw6761",
-	#	"frame/evm/precompile/bls12377",
-	#	"frame/evm/precompile/dispatch",
-	#	"frame/evm/precompile/curve25519",
-	#	"client/consensus",
-	#	"client/rpc-core",
-	#	"client/rpc",
-	#	"client/db",
-	#	"client/storage",
-	#	"client/mapping-sync",
-	#	"primitives/account",
-	#	"primitives/consensus",
-	#	"primitives/dynamic-fee",
-	#	"primitives/evm",
-	#	"primitives/rpc",
-	#	"primitives/self-contained",
+	"frame/base-fee",
+	"frame/dynamic-fee",
+	"frame/ethereum",
+	"frame/evm",
+	"frame/evm-chain-id",
+	"frame/hotfix-sufficients",
+	"frame/evm/precompile/sha3fips",
+	"frame/evm/precompile/simple",
+	"frame/evm/precompile/modexp",
+	"frame/evm/precompile/ed25519",
+	"frame/evm/precompile/bn128",
+	"frame/evm/precompile/blake2",
+	"frame/evm/precompile/bw6761",
+	"frame/evm/precompile/bls12377",
+	"frame/evm/precompile/dispatch",
+	"frame/evm/precompile/curve25519",
+	"client/consensus",
+	"client/rpc-core",
+	"client/rpc",
+	"client/db",
+	"client/storage",
+	"client/mapping-sync",
+	"primitives/account",
+	"primitives/consensus",
+	"primitives/dynamic-fee",
+	"primitives/evm",
+	"primitives/rpc",
+	"primitives/self-contained",
 	"template/node",
 	"template/runtime",
 	"moonbeam/client/evm-tracing",
@@ -186,14 +186,14 @@ ark-ff = { version = "0.4.0", default-features = false }
 ark-std = { version = "0.4.0", default-features = false }
 
 # Moonbeam tracing
-evm-tracing-events = { path = "./moonbeam/primitives/rpc/evm-tracing-events", default-features = false }
-moonbeam-client-evm-tracing = { path = "./moonbeam/client/evm-tracing" }
-moonbeam-evm-tracer = { path = "./moonbeam/runtime/evm_tracer", default-features = false }
-moonbeam-primitives-ext = { path = "./moonbeam/primitives/ext", default-features = false }
-moonbeam-rpc-core-debug = { path = "./moonbeam/client/rpc-core/debug", default-features = false }
-moonbeam-rpc-core-trace = { path = "./moonbeam/client/rpc-core/trace", default-features = false }
-moonbeam-rpc-core-types = { path = "./moonbeam/client/rpc-core/types" }
-moonbeam-rpc-debug = { path = "./moonbeam/client/rpc/debug", default-features = false }
-moonbeam-rpc-primitives-debug = { path = "./moonbeam/primitives/rpc/debug", default-features = false }
-moonbeam-rpc-trace = { path = "./moonbeam/client/rpc/trace", default-features = false }
+evm-tracing-events = { path = "moonbeam/primitives/rpc/evm-tracing-events", default-features = false }
+moonbeam-client-evm-tracing = { path = "moonbeam/client/evm-tracing" }
+moonbeam-evm-tracer = { path = "moonbeam/runtime/evm_tracer", default-features = false }
+moonbeam-primitives-ext = { path = "moonbeam/primitives/ext", default-features = false }
+moonbeam-rpc-core-debug = { path = "moonbeam/client/rpc-core/debug", default-features = false }
+moonbeam-rpc-core-trace = { path = "moonbeam/client/rpc-core/trace", default-features = false }
+moonbeam-rpc-core-types = { path = "moonbeam/client/rpc-core/types" }
+moonbeam-rpc-debug = { path = "moonbeam/client/rpc/debug", default-features = false }
+moonbeam-rpc-primitives-debug = { path = "moonbeam/primitives/rpc/debug", default-features = false }
+moonbeam-rpc-trace = { path = "moonbeam/client/rpc/trace", default-features = false }
 sha3 = { version = "0.10", default-features = false }
