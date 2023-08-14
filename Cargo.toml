@@ -30,6 +30,10 @@ members = [
 	#	"primitives/self-contained",
 	"template/node",
 	"template/runtime",
+	"moonbeam/client/evm-tracing",
+	"moonbeam/client/rpc/debug",
+	"moonbeam/client/rpc/trace",
+	"moonbeam/runtime/evm_tracer",
 ]
 resolver = "2"
 
