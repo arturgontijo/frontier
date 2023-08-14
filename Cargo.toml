@@ -32,8 +32,14 @@ members = [
 	"template/runtime",
 	"moonbeam/client/evm-tracing",
 	"moonbeam/client/rpc/debug",
+	"moonbeam/client/rpc-core/debug",
 	"moonbeam/client/rpc/trace",
+	"moonbeam/client/rpc-core/trace",
+	"moonbeam/client/rpc-core/types",
 	"moonbeam/runtime/evm_tracer",
+	"moonbeam/primitives/rpc/evm-tracing-events",
+	"moonbeam/primitives/ext",
+	"moonbeam/primitives/rpc/debug",
 ]
 resolver = "2"
 
