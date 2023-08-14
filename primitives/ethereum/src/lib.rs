@@ -24,7 +24,7 @@ pub use ethereum::{
 };
 use ethereum_types::{H160, H256, U256};
 use fp_evm::CheckEvmTransactionInput;
-use scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use sp_std::vec::Vec;
 
 #[repr(u8)]

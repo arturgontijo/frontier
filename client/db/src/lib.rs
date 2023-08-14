@@ -18,7 +18,7 @@
 
 #![deny(unused_crate_dependencies)]
 
-use scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 // Substrate
 pub use sc_client_db::DatabaseSource;
 use sp_core::H256;
@@ -45,8 +45,8 @@ pub struct TransactionMetadata<Block: BlockT> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct FilteredLog<Block: BlockT> {
-	pub substrate_block_hash: Block::Hash,
+pub struct FilteredLog {
+	pub substrate_block_hash: H256,
 	pub ethereum_block_hash: H256,
 	pub block_number: u32,
 	pub ethereum_storage_schema: fp_storage::EthereumStorageSchema,
@@ -72,7 +72,7 @@ pub trait BackendReader<Block: BlockT> {
 		to_block: u64,
 		addresses: Vec<sp_core::H160>,
 		topics: Vec<Vec<Option<H256>>>,
-	) -> Result<Vec<FilteredLog<Block>>, String>;
+	) -> Result<Vec<FilteredLog>, String>;
 
 	fn is_indexed(&self) -> bool;
 }

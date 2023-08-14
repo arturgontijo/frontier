@@ -23,7 +23,7 @@ use std::{
 	sync::Arc,
 };
 
-use scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 // Substrate
 use sc_client_db::DatabaseSource;
 use sp_blockchain::HeaderBackend;
@@ -334,7 +334,7 @@ mod tests {
 	};
 
 	use crate::kv::DatabaseSettings;
-	use scale_codec::Encode;
+	use parity_scale_codec::Encode;
 	use sp_blockchain::HeaderBackend;
 	use sp_core::H256;
 	use sp_runtime::{

@@ -26,8 +26,8 @@ use std::{
 	sync::Arc,
 };
 
+use parity_scale_codec::{Decode, Encode};
 use parking_lot::Mutex;
-use scale_codec::{Decode, Encode};
 // Substrate
 pub use sc_client_db::DatabaseSource;
 use sp_blockchain::HeaderBackend;
@@ -89,7 +89,7 @@ impl<Block: BlockT> crate::BackendReader<Block> for Backend<Block> {
 		_to_block: u64,
 		_addresses: Vec<sp_core::H160>,
 		_topics: Vec<Vec<Option<H256>>>,
-	) -> Result<Vec<crate::FilteredLog<Block>>, String> {
+	) -> Result<Vec<crate::FilteredLog>, String> {
 		Err("KeyValue db does not index logs".into())
 	}
 

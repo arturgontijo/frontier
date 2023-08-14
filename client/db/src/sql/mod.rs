@@ -19,7 +19,7 @@
 use std::{cmp::Ordering, collections::HashSet, num::NonZeroU32, str::FromStr, sync::Arc};
 
 use futures::TryStreamExt;
-use scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use sqlx::{
 	query::Query,
 	sqlite::{
@@ -857,7 +857,7 @@ impl<Block: BlockT<Hash = H256>> BackendReader<Block> for Backend<Block> {
 		to_block: u64,
 		addresses: Vec<H160>,
 		topics: Vec<Vec<Option<H256>>>,
-	) -> Result<Vec<FilteredLog<Block>>, String> {
+	) -> Result<Vec<FilteredLog>, String> {
 		let mut unique_topics: [HashSet<H256>; 4] = [
 			HashSet::new(),
 			HashSet::new(),
@@ -899,7 +899,7 @@ impl<Block: BlockT<Hash = H256>> BackendReader<Block> for Backend<Block> {
 			});
 		log::debug!(target: "frontier-sql", "Query: {sql:?} - {log_key}");
 
-		let mut out: Vec<FilteredLog<Block>> = vec![];
+		let mut out: Vec<FilteredLog> = vec![];
 		let mut rows = query.fetch(&mut *conn);
 		let maybe_err = loop {
 			match rows.try_next().await {
@@ -1033,7 +1033,7 @@ mod test {
 	use std::{collections::BTreeMap, path::Path};
 
 	use maplit::hashset;
-	use scale_codec::Encode;
+	use parity_scale_codec::Encode;
 	use sqlx::{sqlite::SqliteRow, QueryBuilder, Row, SqlitePool};
 	use tempfile::tempdir;
 	// Substrate
@@ -1057,7 +1057,7 @@ mod test {
 		pub to_block: u64,
 		pub addresses: Vec<H160>,
 		pub topics: Vec<Vec<Option<H256>>>,
-		pub expected_result: Vec<FilteredLog<OpaqueBlock>>,
+		pub expected_result: Vec<FilteredLog>,
 	}
 
 	#[derive(Debug, Clone)]
@@ -1097,7 +1097,7 @@ mod test {
 		log_3_badc_2_0_bob: Log,
 	}
 
-	impl From<Log> for FilteredLog<OpaqueBlock> {
+	impl From<Log> for FilteredLog {
 		fn from(value: Log) -> Self {
 			Self {
 				substrate_block_hash: value.substrate_block_hash,
@@ -1385,7 +1385,7 @@ mod test {
 	async fn run_test_case(
 		backend: super::Backend<OpaqueBlock>,
 		test_case: &TestFilter,
-	) -> Result<Vec<FilteredLog<OpaqueBlock>>, String> {
+	) -> Result<Vec<FilteredLog>, String> {
 		backend
 			.filter_logs(
 				test_case.from_block,

@@ -25,10 +25,13 @@
 #![allow(clippy::comparison_chain, clippy::large_enum_variant)]
 #![warn(unused_crate_dependencies)]
 
+mod catch_exec_info;
 #[cfg(all(feature = "std", test))]
 mod mock;
 #[cfg(all(feature = "std", test))]
 mod tests;
+
+pub use catch_exec_info::catch_exec_info;
 
 use ethereum_types::{Bloom, BloomInput, H160, H256, H64, U256};
 use evm::ExitReason;
@@ -317,7 +320,7 @@ pub mod pallet {
 
 	/// Current building block's transactions and receipts.
 	#[pallet::storage]
-	pub(super) type Pending<T: Config> =
+	pub type Pending<T: Config> =
 		StorageValue<_, Vec<(Transaction, TransactionStatus, Receipt)>, ValueQuery>;
 
 	/// The current Ethereum block.
@@ -563,6 +566,8 @@ impl<T: Config> Pallet<T> {
 		transaction: Transaction,
 	) -> DispatchResultWithPostInfo {
 		let (to, _, info) = Self::execute(source, &transaction, None)?;
+
+		catch_exec_info::fill_exec_info(&info);
 
 		let pending = Pending::<T>::get();
 		let transaction_hash = transaction.hash();

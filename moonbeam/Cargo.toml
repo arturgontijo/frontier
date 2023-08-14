@@ -1,0 +1,12 @@
+[workspace]
+members = [
+	"client",
+	"primitives",
+	"runtime",
+]
+resolver = "2"
+
+[workspace.package]
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2021"
+repository = "https://github.com/paritytech/frontier/"

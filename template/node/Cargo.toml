@@ -19,7 +19,7 @@ futures = { workspace = true }
 hex-literal = { workspace = true }
 jsonrpsee = { workspace = true, features = ["server", "macros"] }
 log = { workspace = true }
-scale-codec = { package = "parity-scale-codec", workspace = true }
+parity-scale-codec = { workspace = true }
 serde = { workspace = true }
 
 # Tracing
@@ -106,7 +106,7 @@ default = [
 	"with-rocksdb-weights",
 	"rocksdb",
 	"sql",
-	"txpool",
+	#	"txpool",
 ]
 rocksdb = [
 	"sc-cli/rocksdb",
@@ -122,7 +122,7 @@ sql = [
 ]
 with-rocksdb-weights = ["frontier-template-runtime/with-rocksdb-weights"]
 with-paritydb-weights = ["frontier-template-runtime/with-paritydb-weights"]
-txpool = ["fc-rpc/txpool"]
+#txpool = ["fc-rpc/txpool"]
 rpc-binary-search-estimate = ["fc-rpc/rpc-binary-search-estimate"]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
