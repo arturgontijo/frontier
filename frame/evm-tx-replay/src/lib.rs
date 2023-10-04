@@ -20,9 +20,11 @@ pub mod pallet {
     use super::*;
     use ethereum::{LegacyTransaction, TransactionAction, TransactionSignature, TransactionV2};
     use fp_ethereum::ValidatedTransaction;
+    use fp_evm::CallOrCreateInfo;
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+    use frame_support::traits::{Currency, ExistenceRequirement, WithdrawReasons};
     use frame_system::pallet_prelude::*;
-    use pallet_evm::GasWeightMapping;
+    use pallet_evm::{AddressMapping, GasWeightMapping};
     use sp_core::{H160, H256, U256};
     use sp_runtime::traits::UniqueSaturatedInto;
 
@@ -65,10 +67,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         #[pallet::call_index(0)]
         #[pallet::weight({
-        let without_base_extrinsic_weight = true;
-        <T as pallet_evm::Config>::GasWeightMapping::gas_to_weight({
-        gas_limit.as_u64().unique_saturated_into()
-        }, without_base_extrinsic_weight)
+            let without_base_extrinsic_weight = true;
+            <T as pallet_evm::Config>::GasWeightMapping::gas_to_weight({
+                gas_limit.as_u64().unique_saturated_into()
+            }, without_base_extrinsic_weight)
         })]
         pub fn replay_tx(
             origin: OriginFor<T>,
@@ -77,6 +79,7 @@ pub mod pallet {
             nonce: U256,
             gas_price: U256,
             gas_limit: U256,
+            gas_used: U256,
             to: Option<H160>,
             value: U256,
             data: sp_std::vec::Vec<u8>,
@@ -93,9 +96,9 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
 
             weight.saturating_accrue(<T as Config>::WeightInfo::is_authority());
-            if !Self::is_authority(who) {
-                return Err(frame_support::sp_runtime::DispatchError::BadOrigin.into());
-            }
+            // if !Self::is_authority(who) {
+            //     return Err(frame_support::sp_runtime::DispatchError::BadOrigin.into());
+            // }
 
             let tx_signature =
                 TransactionSignature::new(v, r, s).ok_or(Error::<T>::InvalidSignature)?;
@@ -112,29 +115,63 @@ pub mod pallet {
                 signature: tx_signature,
             });
 
+            let from_id = T::AddressMapping::into_account_id(from);
+
+            // [Artur]: Pre funding `from` with gasLimit+value amount, so the apply() does not break.
+            let prefund = gas_limit
+                .checked_mul(gas_price)
+                .ok_or(Error::<T>::TransactionReplayFailed)?;
+            let prefund = prefund
+                .checked_add(value)
+                .ok_or(Error::<T>::TransactionReplayFailed)?;
+            T::Currency::deposit_creating(&from_id, prefund.as_u128().unique_saturated_into());
+
             // consume weight for TransactionSignature::new
             weight.saturating_accrue(<T as Config>::WeightInfo::tx_creation());
-            match pallet_ethereum::ValidatedTransaction::<T>::apply(from, tx) {
-                Ok((tx_result, _)) => {
-                    /*
-                    todo: we need to check if the EVM execution was successful or not.
+            match pallet_ethereum::ValidatedTransaction::<T>::apply(from, tx.clone()) {
+                Ok((_, call_or_create_info)) => {
 
-                    611a2b233ba912f83c83c973687db6b28c817de8 makes apply_validated_transaction
-                    return CallOrCreateInfo which contains the result of the EVM execution.
+                    let used_gas = match call_or_create_info {
+                        CallOrCreateInfo::Call(info) => info.used_gas.effective,
+                        CallOrCreateInfo::Create(info) => info.used_gas.effective,
+                    };
 
-                    but this commit is not in the latest frontier release
-                    most likely, it will land on 1.1.0
-                     */
+                    // [Artur]: `from` was already charged the `used_gas` in apply().
+                    // [Artur]: So we withdraw `gas_limit - used_gas` from it.
 
-                    // if (evm execution is successful) {
-                    //    Self::deposit_event(Event::<T>::TransactionReplayed(execution_index));
-                    // } else {
-                    //    return Err(Error::<T>::TransactionReplayFailed.into());
-                    // }
+                    // [Artur]: Example:
 
-                    if let Some(w) = tx_result.actual_weight {
-                        weight.saturating_accrue(w);
-                    }
+                    // [Artur]: initialBalance              :   1_000_000
+                    // [Artur]: -gasUsed                    :      60_000
+                    // [Artur]: finalBalance                :     940_000*
+
+                    // [Artur]: initialBalance              :   1_000_000
+                    // [Artur]: +gasLimit (100_000)         :     100_000
+                    // [Artur]: -usedGas (90_000)           :   1_010_000
+                    // [Artur]: -extra (gasUsed+gl-usedGas) :     940_000*
+
+                    // finalBal = initBal + gL - uG - [extra]
+                    // finalBal = initBal + gL - uG - [gU + (gL - uG)]
+                    // 940_000 = 1_000_000 + 100_000 - 90_000 - [60_000 + (100_000 - 90_000)]
+                    // 940_000 = 1_000_000 + 100_000 - 90_000 - [70_000]
+                    // 940_000 = 940_000
+
+                    let extra = gas_used
+                        .checked_add(gas_limit)
+                        .ok_or(Error::<T>::TransactionReplayFailed)?
+                        .checked_sub(used_gas)
+                        .ok_or(Error::<T>::TransactionReplayFailed)?
+                        .checked_mul(gas_price)
+                        .ok_or(Error::<T>::TransactionReplayFailed)?
+                        .checked_add(value)
+                        .ok_or(Error::<T>::TransactionReplayFailed)?
+                        .as_u128();
+                    T::Currency::withdraw(
+                        &from_id,
+                        extra.unique_saturated_into(),
+                        WithdrawReasons::FEE,
+                        ExistenceRequirement::AllowDeath
+                    )?;
                 },
                 Err(_) => return Err(Error::<T>::TransactionReplayFailed.into()),
             }

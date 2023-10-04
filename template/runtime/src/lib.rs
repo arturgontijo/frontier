@@ -51,7 +51,7 @@ use pallet_ethereum::{
 	TransactionData,
 };
 use pallet_evm::{
-	Account as EVMAccount, EnsureAccountId20, FeeCalculator, IdentityAddressMapping, Runner,
+	Account as EVMAccount, EnsureAccountId20, EvmConfig, FeeCalculator, IdentityAddressMapping, Runner,
 };
 
 // A few exports that help ease life for downstream crates.
@@ -62,6 +62,8 @@ use pallet_transaction_payment::Multiplier;
 
 mod precompiles;
 use precompiles::FrontierPrecompiles;
+
+mod evm_config;
 
 /// Type of block number.
 pub type BlockNumber = u32;
@@ -347,6 +349,9 @@ impl pallet_evm::Config for Runtime {
 	type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
 	type Timestamp = Timestamp;
 	type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
+	fn config() -> &'static EvmConfig {
+		&evm_config::EVM_CONSTANTINOPLE_CONFIG
+	}
 }
 
 parameter_types! {
